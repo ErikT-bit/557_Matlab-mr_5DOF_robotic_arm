@@ -1,4 +1,4 @@
-# 557 Robot Arm MATLAB 
+# 557 Robot Arm MATLAB
 
 This repository contains the cleaned MATLAB workflow for the ME557 whiteboard-writing robot.
 
@@ -51,52 +51,44 @@ Arduino sketches used for low-level RB150 / Dynamixel communication and any robo
 Check these user-specific items first.
 
 ### 1. COM port
+
 Edit this line in `matlab/main/main_writeboard_demo.m`:
 
 ```matlab
 hw = robot_hw_rb150_calibrated_6motor("COM13", 1000000);
+```
 
-Change "COM13" to the COM port on your PC.
+Change `"COM13"` to the COM port on your PC.
 
-2. URDF link and joint names
+### 2. URDF link and joint names
 
-main_writeboard_demo.m assumes these names exist in the URDF:
+`main_writeboard_demo.m` assumes these names exist in the URDF:
 
-Base link:
+**Base link:**
+- `FixedBase`
 
-FixedBase
+**Tip link:**
+- `PenTipLink`
 
-Tip link:
+**Joint names:**
+- `RotatingBaseJoint`
+- `ShoulderJoint`
+- `ElbowJoint`
+- `WristJoint`
+- `PenJoint`
 
-PenTipLink
+If your URDF uses different names, edit the variables in `main_writeboard_demo.m`.
 
-Joint names:
-
-RotatingBaseJoint
-
-ShoulderJoint
-
-ElbowJoint
-
-WristJoint
-
-PenJoint
-
-If your URDF uses different names, edit the variables in main_writeboard_demo.m.
-
-3. Calibration and hardware mapping
+### 3. Calibration and hardware mapping
 
 The hardware mapping is robot-specific. Review:
-
-matlab/hardware/servo_calibration.m
-
-calibration/servo_cal_user.m
-
-calibration/servo_cal_user.mat
+- `matlab/hardware/servo_calibration.m`
+- `calibration/servo_cal_user.m`
+- `calibration/servo_cal_user.mat`
 
 If your horn zero positions, motor directions, offsets, limits, motor IDs, or the joint-2 / joint-3 tandem relationship are different, update these files and the related hardware-control files before running.
 
-4. Coupled motor behavior for joints 2 and 3
+### 4. Coupled motor behavior for joints 2 and 3
 
 This robot uses a mechanically coupled / mirrored arrangement for motors 2 and 3.
 
@@ -105,186 +97,146 @@ That means the low-level hardware control must preserve the intended relationshi
 The MATLAB kinematics treat the arm as a 5-DOF serial chain, but the hardware layer is responsible for converting those joint commands into the correct motor commands for the physical robot.
 
 Review these files carefully before running on a different robot design:
-
-matlab/hardware/robot_hw_rb150_calibrated_6motor.m
-
-matlab/hardware/robot_hw_rb150_raw6motor.m
-
-matlab/hardware/moveit_rad_to_servo.m
-
-matlab/hardware/servo_to_moveit_rad.m
-
-matlab/hardware/theta_to_ax_goalpos.m
-
-matlab/hardware/servo_calibration.m
-
-arduino/arduino_to_matlab_FLASH_THIS_TO_RB150.ino
+- `matlab/hardware/robot_hw_rb150_calibrated_6motor.m`
+- `matlab/hardware/robot_hw_rb150_raw6motor.m`
+- `matlab/hardware/moveit_rad_to_servo.m`
+- `matlab/hardware/servo_to_moveit_rad.m`
+- `matlab/hardware/theta_to_ax_goalpos.m`
+- `matlab/hardware/servo_calibration.m`
+- `arduino/arduino_to_matlab_FLASH_THIS_TO_RB150.ino`
 
 If your robot does not use the same tandem / mirrored motor arrangement for joints 2 and 3, these files may need to be modified before any motion is attempted.
 
 Examples of things that may differ between robot builds:
-
-whether motor 2 and motor 3 should move equal-and-opposite,
-
-whether they should move equal-in-the-same-direction,
-
-sign conventions,
-
-motor ID ordering,
-
-zero offsets,
-
-servo limits,
-
-gear or linkage ratios.
+- whether motor 2 and motor 3 should move equal-and-opposite,
+- whether they should move equal-in-the-same-direction,
+- sign conventions,
+- motor ID ordering,
+- zero offsets,
+- servo limits,
+- gear or linkage ratios.
 
 Do not assume this repo is plug-and-play for a different physical arm unless the joint-2 / joint-3 coupling matches your hardware.
 
-5. Home and waypoint settings
+### 5. Home and waypoint settings
 
 These values are robot-specific and should be checked before first motion:
+- `theta_home`
+- `theta_waypoint1`
 
-theta_home
-
-theta_waypoint1
-
-6. Board / pen settings
+### 6. Board / pen settings
 
 These may need adjustment for your setup:
+- `planePressOffset_m`
+- `boardBackoff_m`
+- `penUpHeight_m`
+- `desiredTextHeight_m`
+- `boardSize_m`
 
-planePressOffset_m
-
-boardBackoff_m
-
-penUpHeight_m
-
-desiredTextHeight_m
-
-boardSize_m
-
-7. Folder structure
+### 7. Folder structure
 
 This repo uses relative paths so it can be moved between computers more easily.
 
 Keep the folder structure intact unless you also update the path logic inside the MATLAB scripts.
 
-Main workflow
+## Main workflow
 
 Run from MATLAB:
+
+```matlab
 main_writeboard_demo
+```
 
-Step-by-step function map
-Step 1 - Go HOME
+## Step-by-step function map
 
-Purpose: torque on, read current joints, and move to the home posture if needed.
+### Step 1 - Go HOME
 
-Calls:
+**Purpose:** torque on, read current joints, and move to the home posture if needed.
 
-robot_hw_rb150_calibrated_6motor
+**Calls:**
+- `robot_hw_rb150_calibrated_6motor`
+- `visualize_robot`
+- local helper `move_slow_quintic_limited`
 
-visualize_robot
+### Step 2 - Plane capture
 
-local helper move_slow_quintic_limited
+**Purpose:** manually touch 4 board points and convert joint states into 3D board points.
 
-Step 2 - Plane capture
+**Calls:**
+- `hw.readJoints`
+- `FKinSpace`
+- `plane_from_4pts`
+- local helper `board_frame_from_points`
+- `viewer.setBoard`
 
-Purpose: manually touch 4 board points and convert joint states into 3D board points.
+### Step 3 - Move to waypoint1
 
-Calls:
+**Purpose:** move to a known intermediate posture before sketch capture.
 
-hw.readJoints
+**Calls:**
+- local helper `move_slow_quintic_limited`
 
-FKinSpace
+### Step 4 - Sketch capture
 
-plane_from_4pts
+**Purpose:** capture drawing strokes from the sketchpad window.
 
-local helper board_frame_from_points
+**Calls:**
+- `sketchpad_capture`
 
-viewer.setBoard
+### Step 5 - Scale and center
 
-Step 3 - Move to waypoint1
+**Purpose:** scale the sketch to the desired text height.
 
-Purpose: move to a known intermediate posture before sketch capture.
+**Calls:**
+- `strokes_scale_center`
 
-Calls:
+### Step 6 - Strokes to task space
 
-local helper move_slow_quintic_limited
+**Purpose:** map 2D sketch strokes to 3D poses on the fitted board plane.
 
-Step 4 - Sketch capture
+**Calls:**
+- `strokes_to_taskspace`
+- `viewer.setPath`
 
-Purpose: capture drawing strokes from the sketchpad window.
+### Step 7 - IK solve
 
-Calls:
+**Purpose:** solve the drawing path waypoint-by-waypoint in joint space.
 
-sketchpad_capture
-
-Step 5 - Scale and center
-
-Purpose: scale the sketch to the desired text height.
-
-Calls:
-
-strokes_scale_center
-
-Step 6 - Strokes to task space
-
-Purpose: map 2D sketch strokes to 3D poses on the fitted board plane.
-
-Calls:
-
-strokes_to_taskspace
-
-viewer.setPath
-
-Step 7 - IK solve
-
-Purpose: solve the drawing path waypoint-by-waypoint in joint space.
-
-Calls:
-
-run_ik_trajectory
+**Calls:**
+- `run_ik_trajectory`
 
 Inside that pipeline, the custom solver uses a position-only IK workflow supported by Modern Robotics helper functions.
 
 Modern Robotics functions used in this pipeline include:
+- `FKinSpace`
+- `JacobianSpace`
+- `MatrixLog6`
+- `TransInv`
+- `Adjoint`
+- `se3ToVec`
+- `MatrixExp6`
+- `VecTose3`
 
-FKinSpace
+### Step 8 - Execute drawing
 
-JacobianSpace
+**Purpose:** move to the first waypoint, then execute the joint trajectory.
 
-MatrixLog6
+**Calls:**
+- local helper `move_slow_quintic_limited`
+- local helper `execute_trajectory_safe`
 
-TransInv
-
-Adjoint
-
-se3ToVec
-
-MatrixExp6
-
-VecTose3
-
-Step 8 - Execute drawing
-
-Purpose: move to the first waypoint, then execute the joint trajectory.
-
-Calls:
-
-local helper move_slow_quintic_limited
-
-local helper execute_trajectory_safe
-
-Important note:
+**Important note:**  
 Joint-space commands are converted into physical motor commands through the hardware layer, which may include robot-specific coupling logic for motors 2 and 3.
 
-Step 9 - Return HOME
+### Step 9 - Return HOME
 
-Purpose: move the arm back to home after drawing.
+**Purpose:** move the arm back to home after drawing.
 
-Main function dependency chain
+## Main function dependency chain
 
 The main script follows this general dependency chain:
 
+```text
 main_writeboard_demo
  ├─ robot_model_from_urdf
  ├─ robot_hw_rb150_calibrated_6motor
@@ -297,39 +249,26 @@ main_writeboard_demo
  │   └─ ik_position_only_space
  │       └─ Modern Robotics helper functions
  └─ hardware execution helpers
+```
 
- Files most likely to require user edits
+## Files most likely to require user edits
 
 If another person is trying to adapt this repo to a different robot, these are the first files they should review:
+- `matlab/main/main_writeboard_demo.m`
+- `matlab/hardware/servo_calibration.m`
+- `calibration/servo_cal_user.m`
+- `calibration/servo_cal_user.mat`
+- `matlab/hardware/robot_hw_rb150_calibrated_6motor.m`
+- `matlab/hardware/robot_hw_rb150_raw6motor.m`
+- `matlab/hardware/moveit_rad_to_servo.m`
+- `matlab/hardware/servo_to_moveit_rad.m`
+- `matlab/hardware/theta_to_ax_goalpos.m`
+- `arduino/arduino_to_matlab_FLASH_THIS_TO_RB150.ino`
+- `robot_description/urdf/simple_robot_v2.urdf`
 
-matlab/main/main_writeboard_demo.m
+## Notes
 
-matlab/hardware/servo_calibration.m
-
-calibration/servo_cal_user.m
-
-calibration/servo_cal_user.mat
-
-matlab/hardware/robot_hw_rb150_calibrated_6motor.m
-
-matlab/hardware/robot_hw_rb150_raw6motor.m
-
-matlab/hardware/moveit_rad_to_servo.m
-
-matlab/hardware/servo_to_moveit_rad.m
-
-matlab/hardware/theta_to_ax_goalpos.m
-
-arduino/arduino_to_matlab_FLASH_THIS_TO_RB150.ino
-
-robot_description/urdf/simple_robot_v2.urdf
-
-Notes
-
-This cleaned repo is organized around the whiteboard-writing workflow only.
-
-Older single-motor and unused hardware test files were intentionally removed from this repo.
-
-The Modern Robotics functions in mr/ are only the subset needed by the current workflow.
-
-The MATLAB layer assumes a 5-DOF kinematic model, while the physical hardware layer may still require robot-specific actuator coupling and calibration.
+- This cleaned repo is organized around the whiteboard-writing workflow only.
+- Older single-motor and unused hardware test files were intentionally removed from this repo.
+- The Modern Robotics functions in `mr/` are only the subset needed by the current workflow.
+- The MATLAB layer assumes a 5-DOF kinematic model, while the physical hardware layer may still require robot-specific actuator coupling and calibration.
