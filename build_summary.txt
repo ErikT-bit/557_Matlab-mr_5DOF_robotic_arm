@@ -1,0 +1,6 @@
+Created clean repo at: C:\Users\Nathan\557-Robot-Arm-Matlab-Clean
+Main script: matlab\main\main_writeboard_demo.m
+URDF: robot_description\urdf\simple_robot_v2.urdf
+Meshes copied: 7
+MR files copied: 23
+Arduino sketches copied: 1
