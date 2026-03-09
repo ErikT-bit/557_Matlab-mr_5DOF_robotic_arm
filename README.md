@@ -168,13 +168,5 @@ Calls:
 ### Step 9 - Return HOME
 Purpose: move the arm back to home after drawing.
 
-## Included files
-This clean repo intentionally excludes:
-- single-motor test files
-- 5-motor hardware files
-- autosave `.asv` files
-- unused duplicates
-- temporary experiments not needed to run the writing workflow
-
 ## Notes
 This repo uses relative paths so that it can be moved between computers more easily. Keep the folder structure intact unless you also update the path logic in the MATLAB scripts.
